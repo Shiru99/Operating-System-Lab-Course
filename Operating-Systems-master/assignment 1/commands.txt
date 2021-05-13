@@ -1,0 +1,7 @@
+echo "Hello world"
+ls
+pwd
+ps &
+sleep 1 && ls && pwd
+cat "hello " &&& echo "world"
+exit

@@ -1,0 +1,6 @@
+echo "hello"
+ls
+echo "work"
+ls -al
+sleep 5 &&& sleep 1
+date
