@@ -10,6 +10,7 @@
 #define MAX_INPUT_SIZE 1024
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
+
 int numberOfParallel = 0;
 pid_t pidarr[64];
 // int numberOfForeground = 0;
