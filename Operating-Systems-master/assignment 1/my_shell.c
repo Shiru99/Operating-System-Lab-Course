@@ -36,7 +36,7 @@ char **tokenize(char *line, int *parallel, int *background)
 		if (readChar == ' ' || readChar == '\n' || readChar == '\t')
 		{
 			token[tokenIndex] = '\0';
-			if (tokenIndex != 0)
+			if (tokenIndex != 0)slee
 			{
 				tokens[tokenNo] = (char *)malloc(MAX_TOKEN_SIZE * sizeof(char));
 				strcpy(tokens[tokenNo++], token);

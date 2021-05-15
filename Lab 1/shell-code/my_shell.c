@@ -76,6 +76,9 @@ void backgroundHandler()
 				break;
 			}
 		}
+		
+		int status;
+		pid_t wpid = waitpid(pid, &status, 0);
 	}
 }
 
@@ -115,8 +118,9 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 			backgroundPID[numOfBackground++] = pid;
 		}
 
-		if (!isParallel && !isBackground)
-		{ // if blocking, reap it before going ahead
+		if (!isBackground || isParallel)
+		{ 
+			// if blocking, reap it before going ahead
 			int status;
 			pid_t wpid = waitpid(pid, &status, 0);
 		}
@@ -214,7 +218,11 @@ int main(int argc, char *argv[])
 			else if (strcmp(tokens[i], "&&&") == 0)
 			{
 				isParallel = true;
-				exec(isParallel, isBackground, command[0], command, commandLength);
+				if (CDcommand != true)
+				{
+					exec(isParallel, isBackground, command[0], command, commandLength);
+				}
+				CDcommand = false;
 				commandLength = 0;
 			}
 			else if (strcmp(tokens[i], "cd") == 0) // ls
