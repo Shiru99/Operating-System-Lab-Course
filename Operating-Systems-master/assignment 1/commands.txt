@@ -2,6 +2,6 @@ echo "Hello world"
 ls
 pwd
 ps &
-sleep 1 && ls && pwd
+sleep 30 && ls && pwd
 cat "hello " &&& echo "world"
-exit
+exitx`

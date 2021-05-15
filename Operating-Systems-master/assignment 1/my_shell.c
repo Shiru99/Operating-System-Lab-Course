@@ -11,23 +11,15 @@
 #define MAX_TOKEN_SIZE 64
 #define MAX_NUM_TOKENS 64
 
-int numberOfParallel = 0;
-pid_t pidarr[64];
+
+
 // int numberOfForeground = 0;
 // pid_t foregroundArr[64];
 int numberOfBackground = 0;
+int numberOfParallel = 0;
+pid_t pidarr[64];
 pid_t backgroundArr[64];
 
-// Helper functions
-unsigned int stoi(char *token)
-{
-	unsigned int unsInt = 0;
-	for (int i = 0; i < strlen(token); i++)
-	{
-		unsInt = unsInt * 10 + (token[i] - '0');
-	}
-	return unsInt;
-}
 
 /* Splits the string by space and returns the array of tokens */
 char **tokenize(char *line, int *parallel, int *background)
@@ -72,8 +64,6 @@ char **tokenize(char *line, int *parallel, int *background)
 
 void killAll(pid_t[], int);
 
-// char *processecho(char **, int, int *);
-void pwd();
 int exec(int, int, char *, char **, int);
 
 void my_sleep(int);
@@ -106,8 +96,8 @@ void backgroundHandler()
 
 int main(int argc, char *argv[])
 {
-	signal(SIGINT, sighandler);
-	signal(SIGCHLD, backgroundHandler);
+	signal(SIGINT, sighandler);			// Issued if the user sends an interrupt signal (Ctrl + C)
+	signal(SIGCHLD, backgroundHandler); // When a child process stops or terminates, SIGCHLD is sent to the parent process. The default response to the signal is to ignore it.
 
 	char line[MAX_INPUT_SIZE];
 	char **tokens;
@@ -171,7 +161,6 @@ int main(int argc, char *argv[])
 				exec(parallel, background, comm[0], comm, commLen);
 				commLen = 0;
 			}
-
 			else if (strcmp(tokens[i], "cd") == 0)
 			{ // done
 				chdir(tokens[++i]);
@@ -186,7 +175,6 @@ int main(int argc, char *argv[])
 				exit(EXIT_SUCCESS);
 				break;
 			}
-
 			else
 			{
 				comm[commLen] = tokens[i];
@@ -248,6 +236,7 @@ int exec(int parallel, int background, char *command, char **args, int size)
 			backgroundArr[numberOfBackground] = pid;
 			numberOfBackground++;
 		}
+
 		if (parallel != 1 && background != 1)
 		{ // if blocking, reap it before going ahead
 			wpid = waitpid(pid, &status, 0);
