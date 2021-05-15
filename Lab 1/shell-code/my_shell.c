@@ -76,7 +76,17 @@ void backgroundHandler()
 				break;
 			}
 		}
-		
+		for (size_t i = 0; i < numOfParallel; i++)
+		{
+			if (parallelPID[i] == pid)
+			{
+				numOfParallel--;
+				printf("Shell: Parallel process finished\n");
+				parallelPID[i] = parallelPID[numOfParallel];
+				break;
+			}
+		}
+
 		int status;
 		pid_t wpid = waitpid(pid, &status, 0);
 	}
@@ -84,7 +94,7 @@ void backgroundHandler()
 
 int exec(bool isParallel, bool isBackground, char *commandName, char **commandArgs, int commandLength)
 {
-	pid_t pid;
+	pid_t pid,wpid;
 
 	char *new_arg[commandLength + 1];
 	for (int i = 0; i < commandLength; i++)
@@ -111,6 +121,7 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 	{
 		if (isParallel)
 		{ // if parallel
+
 			parallelPID[numOfParallel++] = pid;
 		}
 		else if (isBackground)
@@ -118,11 +129,17 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 			backgroundPID[numOfBackground++] = pid;
 		}
 
-		if (!isBackground || isParallel)
-		{ 
+		if (!isBackground && !isParallel)
+		{
 			// if blocking, reap it before going ahead
 			int status;
 			pid_t wpid = waitpid(pid, &status, 0);
+		}
+		else if (isParallel)
+		{
+			// IF Any child is alive, parent should not terminate
+			int status;
+			while ((wpid = wait(&status)) > 0);
 		}
 	}
 
