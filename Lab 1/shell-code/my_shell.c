@@ -77,25 +77,6 @@ void backgroundHandler()
 			}
 		}
 	}
-	else if (numOfParallel != 0)
-	{
-		// printf("%d\n", numOfParallel);
-		int wstat;
-		pid_t pid;
-		pid = wait3(&wstat, WNOHANG, (struct rusage *)NULL);
-
-		for (size_t i = 0; i < numOfParallel; i++)
-		{
-			if (parallelPID[i] == pid)
-			{
-				numOfParallel--;
-				// printf("Shell: Paralled process finished\n");
-				//swapping the last background process with removed arr
-				parallelPID[i] = parallelPID[numOfParallel];
-				break;
-			}
-		}
-	}
 }
 
 int exec(bool isParallel, bool isBackground, char *commandName, char **commandArgs, int commandLength)
@@ -125,16 +106,11 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 	}
 	else if (pid)
 	{
-		if (isParallel)
-		{ // if parallel
-			parallelPID[numOfParallel++] = pid;
-			wait(NULL);
-		}
-		else if (isBackground)
+		if (isBackground)
 		{ // if background
 			backgroundPID[numOfBackground++] = pid;
 		}
-		else if (!isParallel && !isBackground)
+		else 
 		{ // if blocking, reap it before going ahead
 			int status;
 			pid_t wpid = waitpid(pid, &status, 0);
@@ -144,10 +120,6 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 	return commandLength;
 }
 
-
-void exeParallel(){
-
-}
 int main(int argc, char *argv[])
 {
 
@@ -243,7 +215,6 @@ int main(int argc, char *argv[])
 			}
 			else if (strcmp(tokens[i], "&&&") == 0)
 			{
-				// printf("Inside parallel");
 				isParallel = true;
 				numOfParallel++;
 				index[numOfParallel] = i;
