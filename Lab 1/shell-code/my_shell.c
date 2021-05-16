@@ -59,7 +59,6 @@ void sighandler()
 
 void backgroundHandler()
 {
-	printf("Hello world\n");
 	if (numOfBackground != 0)
 	{
 		int wstat;
@@ -78,7 +77,8 @@ void backgroundHandler()
 			}
 		}
 	}
-	else if (numOfParallel != 0) {
+	else if (numOfParallel != 0)
+	{
 		// printf("%d\n", numOfParallel);
 		int wstat;
 		pid_t pid;
@@ -89,7 +89,7 @@ void backgroundHandler()
 			if (parallelPID[i] == pid)
 			{
 				numOfParallel--;
-				printf("Shell: Paralled process finished\n");
+				// printf("Shell: Paralled process finished\n");
 				//swapping the last background process with removed arr
 				parallelPID[i] = parallelPID[numOfParallel];
 				break;
@@ -115,7 +115,7 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 		// execvp starts its execution, the original program in the caller's address space is gone and is replaced by the new program
 		if (execvp(commandName, new_arg) < 0)
 		{
-			printf("Shell1: Incorrect command  \n");
+			printf("Shell: Incorrect command  \n");
 			exit(EXIT_FAILURE);
 		}
 		else // never runs
@@ -144,6 +144,10 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 	return commandLength;
 }
 
+
+void exeParallel(){
+
+}
 int main(int argc, char *argv[])
 {
 
@@ -188,7 +192,7 @@ int main(int argc, char *argv[])
 		else // interactive mode
 		{
 			// if (numOfParallel == 0) {
-				printf("$ ");
+			printf("$ ");
 			// }
 			scanf("%[^\n]", line);
 			// printf("%s", line);
@@ -243,7 +247,6 @@ int main(int argc, char *argv[])
 				isParallel = true;
 				numOfParallel++;
 				index[numOfParallel] = i;
-				// exec(isParallel, isBackground, command[0], command, commandLength);
 				commandLength = 0;
 			}
 			else if (strcmp(tokens[i], "cd") == 0) // ls
@@ -260,75 +263,65 @@ int main(int argc, char *argv[])
 				command[commandLength++] = tokens[i];
 			}
 		}
-		index[numOfParallel+1] = i;
+		index[numOfParallel + 1] = i;
 		if (CDcommand != true && isBackground != true && isParallel != true)
 		{
 			exec(isParallel, isBackground, command[0], command, commandLength);
 		}
-		if (isParallel) {
+		if (isParallel)
+		{
 			int j = 0;
-			for (int k=1; k<=numOfParallel+1; k++) {
-				// printf("%d---\n", j);
+			for (int k = 1; k <= numOfParallel + 1; k++)
+			{
 				char *command1[MAX_TOKEN_SIZE];
-				for (; j<index[k]; j++) {
-					// printf("%s ", tokens[j]);
-					// printf("%d\n", j-index[k-1]);
-					if (k==1){
-						command1[j-index[k-1]] = tokens[j];
-					}
-					else {
-						command1[j-index[k-1]-1] = tokens[j];
-					}
+
+				if (k == 1)
+					commandLength = index[k] - index[k - 1];
+				else
+					commandLength = index[k] - index[k - 1] - 1;
+
+				for (; j < index[k]; j++)
+				{
+					if (k == 1)
+						command1[j - index[k - 1]] = tokens[j];
+					else
+						command1[j - index[k - 1] - 1] = tokens[j];
 				}
 				j++;
-				// printf("%s\n", command[0]);
-				if (k== 1) {
-					commandLength = index[k]-index[k-1];
-				}
-				else {
-					commandLength = index[k]-index[k-1]-1;
-				}
-				printf("Command: %d\n", commandLength);
+
 				char *new_arg[commandLength];
 				for (int l = 0; l < commandLength; l++)
 				{
 					new_arg[l] = command1[l];
-					printf("%s\n", new_arg[l]);
 				}
-				printf("-----------------\n");
 				new_arg[commandLength] = NULL;
-				pid_t pid;
-				pid = fork();
-				
-				
-				
-				if (pid == 0) // Child
+
+				if (strcmp(command1[0], "cd") == 0)
 				{
-					// execvp starts its execution, the original program in the caller's address space is gone and is replaced by the new program
-					if (execvp(command1[0], new_arg) < 0)
+					continue;
+				}
+				else
+				{
+					pid_t pid;
+					pid = fork();
+					if (pid == 0) // Child
 					{
-						printf("Shell1: Incorrect command  \n");
-						exit(EXIT_FAILURE);
-					}
-					else // never runs
-					{
-						printf("Shell: Completed successfully");
+						// execvp starts its execution, the original program in the caller's address space is gone and is replaced by the new program
+						if (execvp(command1[0], new_arg) < 0)
+						{
+							printf("Shell1: Incorrect command  \n");
+							exit(EXIT_FAILURE);
+						}
+						else // never runs
+						{
+							printf("Shell: Completed successfully");
+						}
 					}
 				}
-				
-				// for (int l = 0; l<MAX_TOKEN_SIZE; l++)
-				// {
-					// free(command1[l]);
-				// }
-				// free(command1);
-				// for (int l = 0; l<commandLength; l++)
-				// {
-					// free(new_arg[l]);
-				// }
-				// free(new_arg);
 			}
 			pid_t wpid;
-			while ((wpid = wait(NULL)) > 0);
+			while ((wpid = wait(NULL)) > 0)
+				;
 		}
 
 		// -------------------- Added Here --------------------
