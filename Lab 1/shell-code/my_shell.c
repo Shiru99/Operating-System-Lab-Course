@@ -94,7 +94,7 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 	if (pid == 0) // Child
 	{
 		// execvp starts its execution, the original program in the caller's address space is gone and is replaced by the new program
-		if (execvp(commandName, new_arg) < 0)
+		if (execvp(commandArgs[0], new_arg) < 0)
 		{
 			printf("Shell: Incorrect command  \n");
 			exit(EXIT_FAILURE);
