@@ -17,6 +17,7 @@ int numOfParallel = 0;
 pid_t parallelPID[64];
 pid_t backgroundPID[64];
 
+
 /* Splits the string by space and returns the array of tokens
 *
 */
@@ -79,7 +80,7 @@ void backgroundHandler()
 	}
 }
 
-int exec(bool isParallel, bool isBackground, char *commandName, char **commandArgs, int commandLength)
+int exec(bool isBackground, char **commandArgs, int commandLength)
 {
 	pid_t pid;
 
@@ -110,7 +111,7 @@ int exec(bool isParallel, bool isBackground, char *commandName, char **commandAr
 		{ // if background
 			backgroundPID[numOfBackground++] = pid;
 		}
-		else 
+		else
 		{ // if blocking, reap it before going ahead
 			int status;
 			pid_t wpid = waitpid(pid, &status, 0);
@@ -163,17 +164,13 @@ int main(int argc, char *argv[])
 		}
 		else // interactive mode
 		{
-			// if (numOfParallel == 0) {
 			printf("$ ");
-			// }
 			scanf("%[^\n]", line);
-			// printf("%s", line);
 			getchar();
 		}
 		/* END: TAKING INPUT */
 
 		line[strlen(line)] = '\n'; // terminate with new line
-		// printf("Hello");
 		tokens = tokenize(line);
 
 		//do whatever you want with the commands, here we just print them
@@ -198,22 +195,22 @@ int main(int argc, char *argv[])
 		for (i = 0; tokens[i] != NULL; i++)
 		{
 
-			if (strcmp(tokens[i], "&") == 0)
+			if (strcmp(tokens[i], "&") == 0) // background
 			{
 				isBackground = true;
-				exec(isParallel, isBackground, command[0], command, commandLength);
+				exec(isBackground, command, commandLength);
 				commandLength = 0;
 			}
-			else if (strcmp(tokens[i], "&&") == 0)
+			else if (strcmp(tokens[i], "&&") == 0) // foreground Serial
 			{
 				if (CDcommand != true)
 				{
-					exec(isParallel, isBackground, command[0], command, commandLength);
+					exec(isBackground, command, commandLength);
 				}
 				CDcommand = false;
 				commandLength = 0;
 			}
-			else if (strcmp(tokens[i], "&&&") == 0)
+			else if (strcmp(tokens[i], "&&&") == 0) // foreground parallel
 			{
 				isParallel = true;
 				numOfParallel++;
@@ -235,10 +232,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		index[numOfParallel + 1] = i;
-		if (CDcommand != true && isBackground != true && isParallel != true)
-		{
-			exec(isParallel, isBackground, command[0], command, commandLength);
-		}
+
 		if (isParallel)
 		{
 			int j = 0;
@@ -277,22 +271,20 @@ int main(int argc, char *argv[])
 					pid = fork();
 					if (pid == 0) // Child
 					{
-						// execvp starts its execution, the original program in the caller's address space is gone and is replaced by the new program
 						if (execvp(command1[0], new_arg) < 0)
 						{
-							printf("Shell1: Incorrect command  \n");
+							printf("Shell: Incorrect command  \n");
 							exit(EXIT_FAILURE);
-						}
-						else // never runs
-						{
-							printf("Shell: Completed successfully");
 						}
 					}
 				}
 			}
 			pid_t wpid;
-			while ((wpid = wait(NULL)) > 0)
-				;
+			while ((wpid = wait(NULL)) > 0);
+		}
+		else if (CDcommand != true && isBackground != true)
+		{
+			exec(isBackground, command, commandLength);
 		}
 
 		// -------------------- Added Here --------------------
