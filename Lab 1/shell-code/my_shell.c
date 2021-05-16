@@ -17,6 +17,8 @@ int numOfParallel = 0;
 pid_t parallelPID[64];
 pid_t backgroundPID[64];
 
+bool isSubsequent=true;
+
 /* Splits the string by space and returns the array of tokens
 *
 */
@@ -62,7 +64,8 @@ void killAll(pid_t processes[], int number)
 
 void sighandler()
 {
-	// killAll(parallelPID, numOfParallel);
+	isSubsequent = false;
+
 }
 
 void backgroundHandler()
@@ -78,9 +81,8 @@ void backgroundHandler()
 			if (backgroundPID[i] == pid)
 			{
 				numOfBackground--;
+				backgroundPID[i] = backgroundPID[numOfBackground]; //swapping the last background process with removed one
 				printf("Shell: Background process finished\n");
-				//swapping the last background process with removed arr
-				backgroundPID[i] = backgroundPID[numOfBackground];
 				break;
 			}
 		}
@@ -117,6 +119,8 @@ int exec(bool isBackground, char **commandArgs, int commandLength)
 		if (isBackground)
 		{ // if background
 			backgroundPID[numOfBackground++] = pid;
+			 if (setpgid(pid, 0) != 0)
+        		perror("setpgid() error");
 		}
 		else
 		{ // if blocking, reap it before going ahead
@@ -149,7 +153,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	while (1)
+	while (true)
 	{
 		/* BEGIN: TAKING INPUT */
 		// pid_t wpid;
@@ -188,6 +192,7 @@ int main(int argc, char *argv[])
 
 		bool isBackground = false;
 		bool isParallel = false;
+		isSubsequent = true;
 
 		numOfParallel = 0;
 
@@ -212,7 +217,9 @@ int main(int argc, char *argv[])
 			{
 				if (CDcommand != true)
 				{
-					exec(isBackground, command, commandLength);
+					if(isSubsequent){
+						exec(isBackground, command, commandLength);
+					}					
 				}
 				CDcommand = false;
 				commandLength = 0;
@@ -290,7 +297,7 @@ int main(int argc, char *argv[])
 			while ((wpid = wait(NULL)) > 0)
 				;
 		}
-		else if (CDcommand != true && isBackground != true)
+		else if (!CDcommand && !isBackground  && isSubsequent)
 		{
 			exec(isBackground, command, commandLength);
 		}

@@ -36,7 +36,7 @@ char **tokenize(char *line, int *parallel, int *background)
 		if (readChar == ' ' || readChar == '\n' || readChar == '\t')
 		{
 			token[tokenIndex] = '\0';
-			if (tokenIndex != 0)slee
+			if (tokenIndex != 0)
 			{
 				tokens[tokenNo] = (char *)malloc(MAX_TOKEN_SIZE * sizeof(char));
 				strcpy(tokens[tokenNo++], token);
@@ -165,12 +165,10 @@ int main(int argc, char *argv[])
 			{ // done
 				chdir(tokens[++i]);
 			}
-
 			else if (strcmp(tokens[i], "exit") == 0)
 			{ //done
 				killAll(pidarr, numberOfParallel);
 				killAll(backgroundArr, numberOfBackground);
-				ex = 1;
 				printf("Shell: Goodbye. \n");
 				exit(EXIT_SUCCESS);
 				break;
@@ -245,11 +243,11 @@ int exec(int parallel, int background, char *command, char **args, int size)
 	return size;
 }
 
-void killAll(pid_t processes[], int number)
-{
-	for (int i = 0; i < number; i++)
+	void killAll(pid_t processes[], int number)
 	{
-		kill(processes[i], SIGKILL);
-		wait(0);
+		for (int i = 0; i < number; i++)
+		{
+			kill(processes[i], SIGKILL);
+			wait(0);
+		}
 	}
-}
