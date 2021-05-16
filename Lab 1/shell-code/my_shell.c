@@ -17,7 +17,6 @@ int numOfParallel = 0;
 pid_t parallelPID[64];
 pid_t backgroundPID[64];
 
-
 /* Splits the string by space and returns the array of tokens
 *
 */
@@ -51,6 +50,14 @@ char **tokenize(char *line)
 	free(token);
 	tokens[tokenNo] = NULL;
 	return tokens;
+}
+
+void killAll(pid_t processes[], int number)
+{
+	for (int i = 0; i < number; i++)
+	{
+		kill(processes[i], SIGKILL);
+	}
 }
 
 void sighandler()
@@ -173,12 +180,6 @@ int main(int argc, char *argv[])
 		line[strlen(line)] = '\n'; // terminate with new line
 		tokens = tokenize(line);
 
-		//do whatever you want with the commands, here we just print them
-		// for (i = 0; tokens[i] != NULL; i++)
-		// {
-		// printf("found token %s (remove this debug output later)\n", tokens[i]);
-		// }
-
 		// -------------------- Added Here --------------------
 
 		char *command[MAX_TOKEN_SIZE];
@@ -189,13 +190,19 @@ int main(int argc, char *argv[])
 		bool isParallel = false;
 
 		numOfParallel = 0;
-		numOfBackground = 0;
+
 		int index[65];
 		index[0] = 0;
 		for (i = 0; tokens[i] != NULL; i++)
 		{
-
-			if (strcmp(tokens[i], "&") == 0) // background
+			if (strcmp(tokens[i], "exit") == 0)
+			{ //done
+				killAll(backgroundPID, numOfBackground);
+				printf("Shell: Exiting from Shell... \n");
+				exit(EXIT_SUCCESS);
+				break;
+			}
+			else if (strcmp(tokens[i], "&") == 0) // background
 			{
 				isBackground = true;
 				exec(isBackground, command, commandLength);
@@ -280,7 +287,8 @@ int main(int argc, char *argv[])
 				}
 			}
 			pid_t wpid;
-			while ((wpid = wait(NULL)) > 0);
+			while ((wpid = wait(NULL)) > 0)
+				;
 		}
 		else if (CDcommand != true && isBackground != true)
 		{
