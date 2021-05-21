@@ -25,8 +25,8 @@ void *justprint(void *data)
   for (int i = 0; i < NUM_ITER; i++)
   {
     printf("This is thread %d\n", thread_id);
-
     zem_up(&zem[(thread_id + 1) % NUM_THREADS]);
+    
     if (i != NUM_ITER - 1)
     {
       zem_down(&zem[thread_id]);
