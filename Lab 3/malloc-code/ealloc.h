@@ -10,10 +10,10 @@
 
 //minimum allocation size
 #define MINALLOC 256
-#define MAXPAGE 4
 
-#define AVAILABLE 16   //  
-#define _INIT -1
+#define MAXPAGES 4
+#define BLOCKSPERPAGE 16 
+#define EMPTY 0
 
 
 // function declarations to support
@@ -21,6 +21,3 @@ void init_alloc(void);
 char *alloc(int);
 void dealloc(char *);
 void cleanup(void);
-
-
-// https://github.com/preshen-goobiah/Dynamic-Memory-Allocator/blob/master/allocator.h

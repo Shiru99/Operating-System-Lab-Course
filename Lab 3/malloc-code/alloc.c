@@ -1,15 +1,11 @@
 #include "alloc.h"
 
-#define ll long long
-
-ll validMemory[AVAILABLE];
-char *allocation;
-ll startAddr;
+long long memoryBluePrint[BLOCKSPERPAGE];
+char *pageAddress;
 
 int init_alloc()
 {
-    allocation = (char *)mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-
+    pageAddress = (char *)mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     /*
         mmap    -   We are assuming that the heap is built within some free space acquired via a call to the system call mmap()  
 
@@ -19,71 +15,76 @@ int init_alloc()
         MAP_ANONYMOUS - The mapping is not backed by any file; the fd and offset arguments are ignored. The use of this flag in conjunction with MAP_SHARED is only supported on Linux since kernel 2.4.
     */
 
-    if (allocation == MAP_FAILED)
+    if (pageAddress == MAP_FAILED)
         return ERRORCODE;
-    startAddr = (ll)allocation;
-    memset(validMemory, (ll)_INIT, sizeof(validMemory));
-    // memset() is used to fill a block of memory with a particular value (-1)
+
+    memset(memoryBluePrint, (long long)EMPTY, sizeof(memoryBluePrint));
+    // memset() is used to fill a block of memory with a particular value (0)
 
     return SUCCESSCODE;
 }
 
 int cleanup()
 {
-    ll err = munmap(allocation, PAGESIZE);
+    int status = munmap(pageAddress, PAGESIZE);
     // munmap - system call deletes the mappings for the specified address range
-    memset(validMemory, (ll)_INIT, sizeof(validMemory));
-    return err;
+    memset(memoryBluePrint, (long long)EMPTY, sizeof(memoryBluePrint));
+    return status;
 }
 
-char *alloc(int _size)
+char *alloc(int chunkSize)
 {
-    if (_size % MINALLOC != 0)
+    if (chunkSize % MINALLOC != 0)
         return NULL;
 
-    int slots = _size / MINALLOC;
-    int slot = 0;
+    int blocks = chunkSize / MINALLOC;
+    int block = 0;
 
     bool isContinuos = false;
-    ll index = -1;
+    int index = -1; // position in memoryBluePrint for new block
 
-    for (int i = 0; i < AVAILABLE; i++)
+    /* heuristic - FIRST FIT */
+    for (int i = 0; i < BLOCKSPERPAGE; i++)
     {
-        if (validMemory[i] == _INIT)
+        if (memoryBluePrint[i] == EMPTY)
         {
             if (!isContinuos)
                 index = i;
+
             isContinuos = true;
-            if (++slot == slots)
-            {
+
+            if (++block == blocks)
                 break;
-            }
         }
         else
         {
-            slot = 0;
+            block = 0;
             isContinuos = false;
         }
     }
-    if (slot < slots)
+    
+    if (block < blocks)
         return NULL;
 
-    ll retAddress = (ll)(allocation + index * MINALLOC);
-    for (int i = 0; i < slots; i++)
-    {
-        validMemory[index + i] = retAddress;
-    }
-    return (char *)retAddress;
+    long long addressForChunk = (long long)(pageAddress + index * MINALLOC);
+
+    for (int i = 0; i < blocks; i++)
+        memoryBluePrint[index + i] = addressForChunk;
+
+    return (char *)addressForChunk;
 }
 
-void dealloc(char *addr)
+void dealloc(char *chunkAddress)
 {
-    for (int i = 0; i < AVAILABLE; i++)
+    for (int i = (chunkAddress - pageAddress) / MINALLOC; i < BLOCKSPERPAGE; i++)
     {
-        if (validMemory[i] == (ll)addr)
+        if (memoryBluePrint[i] == (long long)chunkAddress)
         {
-            validMemory[i] = _INIT;
+            memoryBluePrint[i] = EMPTY;
+        }
+        else
+        {
+            break;
         }
     }
-    return;
 }
