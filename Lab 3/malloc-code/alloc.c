@@ -1,307 +1,89 @@
 #include "alloc.h"
 
+#define ll long long
 
-block *freeList, *allocList;
-char *page, *metaPage;
-char metaPageStatus[PAGESIZE];
+ll validMemory[AVAILABLE];
+char *allocation;
+ll startAddr;
 
+int init_alloc()
+{
+    allocation = (char *)mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 
+    /*
+        mmap    -   We are assuming that the heap is built within some free space acquired via a call to the system call mmap()  
 
-int init_alloc(){	
-	
-	metaPage = mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        PROT_READ   - 	Pages may be read.
+        PROT_WRITE  -   Pages may be written.
+        MAP_PRIVATE -   Create a private copy-on-write mapping. Stores to the region do not affect the original file. It is unspecified whether changes made to the file after the mmap() call are visible in the mapped region.
+        MAP_ANONYMOUS - The mapping is not backed by any file; the fd and offset arguments are ignored. The use of this flag in conjunction with MAP_SHARED is only supported on Linux since kernel 2.4.
+    */
 
-	if(metaPage){
-		//printf("\n\n[MM] Meta_Page of size %d B allocated starting at (%u | %p).",PAGESIZE,metaPage,metaPage);
-		meta_Init();
-	}else{
-		return -1;
-	}
+    if (allocation == MAP_FAILED)
+        return ERRORCODE;
+    startAddr = (ll)allocation;
+    memset(validMemory, (ll)_INIT, sizeof(validMemory));
+    // memset() is used to fill a block of memory with a particular value (-1)
 
-	page = mmap(NULL, PAGESIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-	if(page){		
-		//printf("\n\n[MM] Page of size %d B allocated starting at (%u | %p).\n",PAGESIZE,page,page);	
-		freeList = new_Block(page, PAGESIZE);	
-		allocList = NULL;			
-	}else{
-		return -1;
-	}
-	
-	return 0;
+    return SUCCESSCODE;
 }
 
-
-char *alloc(int allocSize){
-
-	if(allocSize%8 == 0){	
-
-		block* allocFrom = search_freeList(allocSize);
-		if(allocFrom){
-
-			char* allocAddress = allocFrom->start;
-			allocFrom->start += allocSize;
-			allocFrom->size -= allocSize;
-
-			if(allocFrom->size == 0){
-
-				if(allocFrom->prev || allocFrom->next){
-					if(allocFrom->prev){
-						allocFrom->prev->next = allocFrom->next;
-					}
-					if(allocFrom->next){
-						allocFrom->next->prev = allocFrom->prev;
-					}
-				}else{
-					freeList = NULL;
-				}
-				
-				meta_Free(allocFrom,sizeof(block));
-			}
-
-			add_Block(&allocList,new_Block(allocAddress,allocSize));
-
-			return allocAddress;
-		}	
-	}
-	return NULL;
+int cleanup()
+{
+    ll err = munmap(allocation, PAGESIZE);
+    // munmap - system call deletes the mappings for the specified address range
+    memset(validMemory, (ll)_INIT, sizeof(validMemory));
+    return err;
 }
 
+char *alloc(int _size)
+{
+    if (_size % MINALLOC != 0)
+        return NULL;
 
-void dealloc(char *deallocAddress){
+    int slots = _size / MINALLOC;
+    int slot = 0;
 
-	block *temp, *deallocBlock;
-	
-	temp = allocList;
-	while(temp){
-		if(temp->start == deallocAddress){
-			deallocBlock = temp;
-			break;
-		}
-		temp = temp->next;
-	}
+    bool isContinuos = false;
+    ll index = -1;
 
-	if(deallocBlock == NULL){
-		return;
-	}
-	
-	if(deallocBlock == allocList){
-		allocList = deallocBlock->next;
-		if(deallocBlock->next){
-			deallocBlock->next->prev = NULL;
-		}
-	}else{
-		block *curr = allocList;
-
-		while(curr){
-			if(curr == deallocBlock){				
-				curr->prev->next = curr->next;
-
-				if(curr->next){
-					curr->next->prev = curr->prev;
-				}			
-			}
-			curr = curr->next;
-		}
-	}
-
-	deallocBlock->next = NULL;
-	deallocBlock->prev = NULL;
-	add_Block(&freeList, deallocBlock);
-	return;
-}
-
-
-int cleanup(){
-	return (munmap(page,PAGESIZE) | munmap(metaPage,PAGESIZE));
-}
-
-
-block* new_Block(char *startAddress, int size){
-
-	block* temp = meta_Malloc(sizeof(block));
-	
-	temp->start = startAddress;
-	temp->size = size;
-	temp->prev = NULL;
-	temp->next = NULL;
-
-	//print_MetaPage();
-
-	return temp;
-}
-
-
-void add_Block(block** list, block* newBlock){	
-
-	if((*list) == NULL){
-
-		(*list) = newBlock;
-
-	}else if(newBlock->start < (*list)->start){
-
-		//At the begining of list
-		if(
-			(*list) == freeList && 
-			newBlock->start + newBlock->size == (*list)->start
-		){
-			//Merge
-			(*list)->start = newBlock->start;
-			(*list)->size += newBlock->size;
-
-			meta_Free(newBlock,sizeof(block)); 
-		}else{
-			newBlock->next = (*list);
-			(*list)->prev = newBlock;
-			(*list) = newBlock;
-		}	
-
-	}else{
-		block *curr, *prev;
-		prev = (*list);
-		curr = (*list)->next;
-
-		while(curr){
-			if(newBlock->start < curr->start){
-
-				if((*list) == freeList){
-					if(
-						prev->start + prev->size == newBlock->start &&
-						newBlock->start + newBlock->size == curr->start
-					){
-						prev->size += (newBlock->size + curr->size);
-						prev->next = curr->next;
-						if(curr->next){
-							curr->next->prev =prev;
-						}
-
-						meta_Free(newBlock,sizeof(block));
-						meta_Free(curr,sizeof(block));
-						return;
-					}else if(prev->start + prev->size == newBlock->start){
-
-						prev->size += newBlock->size;
-
-						meta_Free(newBlock,sizeof(block));
-						return;
-					}else if(newBlock->start + newBlock->size == curr->start){
-
-						curr->start = newBlock->start;
-						curr->size += newBlock->size;
-						
-						meta_Free(newBlock,sizeof(block)); 
-						return;
-					}
-				}
-				
-				newBlock->next = curr;
-				newBlock->prev = prev;
-
-				prev->next = newBlock;
-				curr->prev = newBlock;
-
-				return;
-			}
-
-			curr = curr->next;
-			prev = prev->next;
-		}
-
-		//At the end of list
-		if(
-			(*list) == freeList && 
-			prev->start + prev->size == newBlock->start
-		){
-			//Merge
-			prev->size += newBlock->size;
-			meta_Free(newBlock,sizeof(block)); 
-		}else{
-			prev->next = newBlock;
-			newBlock->prev = prev;	
-		}		
-	}
-}
-
-
-block* search_freeList(int allocSize){
-
-	block* temp = freeList;
-
-	while(temp){
-		if(allocSize <= temp->size){
-			return temp;
-		}
-		temp = temp->next;
-	}
-
-	return NULL;
-}
-
-
-void meta_Init(){
-
-    for(int i = 0; i<PAGESIZE; ++i){
-        metaPageStatus[i] = FALSE;
-    }
-}
-
-
-void* meta_Malloc(int size){
-    
-    int currRun = 0;
-    char* startAddress = metaPage;
-
-    for(int i=0; i<PAGESIZE; ++i){
-        
-		if(metaPageStatus[i] == FALSE){
-			++currRun;
-			if(currRun == size){         
-				int startIndex = i-currRun+1;
-
-				while(size--){
-					metaPageStatus[startIndex++] = TRUE;
-				}
-
-				return startAddress;
-			}
-		}else{		
-			currRun = 0;
-			startAddress = metaPage+i+1;
-		}       
-    }
-
-    return NULL;
-}
-
-
-void meta_Free(char* blockAddress, int size){
-    
-    int i;
-    for(i=0; i<PAGESIZE; ++i){
-        if(metaPage+i == blockAddress){
-            break;
+    for (int i = 0; i < AVAILABLE; i++)
+    {
+        if (validMemory[i] == _INIT)
+        {
+            if (!isContinuos)
+                index = i;
+            isContinuos = true;
+            if (++slot == slots)
+            {
+                break;
+            }
+        }
+        else
+        {
+            slot = 0;
+            isContinuos = false;
         }
     }
+    if (slot < slots)
+        return NULL;
 
-    while(size--){
-        (*blockAddress) = 0;
-        metaPageStatus[i++] = FALSE; 
+    ll retAddress = (ll)(allocation + index * MINALLOC);
+    for (int i = 0; i < slots; i++)
+    {
+        validMemory[index + i] = retAddress;
     }
-
-    //print_MetaPage();
+    return (char *)retAddress;
 }
 
-
-void print_MetaPage(){
-
-	printf("\n___________________________________\n\n");
-
-	for(int i = 0; i<(32*15); ++i){
-        printf("%d",metaPageStatus[i]);
-		if(i%32 == 31){
-			printf("\n");
-		}
+void dealloc(char *addr)
+{
+    for (int i = 0; i < AVAILABLE; i++)
+    {
+        if (validMemory[i] == (ll)addr)
+        {
+            validMemory[i] = _INIT;
+        }
     }
-
-	printf("___________________________________\n");
+    return;
 }
