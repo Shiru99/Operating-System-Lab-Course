@@ -3,7 +3,7 @@
 
 To test all test cases
 
-    $ /autograder.sh testcases/ expected_output/
+    $ ./autograder.sh testcases/ myoutput/
 
 
 To test individual Test Case 

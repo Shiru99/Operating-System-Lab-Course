@@ -32,7 +32,8 @@ void simplefs_formatDisk(){
 
     FILE* fp;
     fp = fopen("simplefs", "w+");
-    DISK_FD = fileno(fp);
+    DISK_FD = fileno(fp);   
+    // returns File descriptor (In Unix and Unix-like computer operating systems, a file descriptor (FD, less frequently fildes) is a unique identifier (handle) for a file)
 
     // Setting up superblock
     struct superblock_t *superblock = (struct superblock_t *)malloc(sizeof(struct superblock_t));
@@ -85,7 +86,10 @@ void simplefs_freeInode(int inodenum){
     /*
 	    free inode with index `inodenum`     
 	*/
-    assert(inodenum < NUM_INODES);
+    assert(inodenum < NUM_INODES);  
+    
+    // In the C Programming Language, assert is a macro that is designed to be used like a function. It checks the value of an expression that we expect to be true under normal circumstances. ... If expression is zero, the assert macro writes a message to stderr and terminates the program by calling abort.
+    
     struct superblock_t *superblock = (struct superblock_t *)malloc(sizeof(struct superblock_t));
     struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
     simplefs_readSuperBlock(superblock);

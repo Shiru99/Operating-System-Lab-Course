@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 #include "simplefs-disk.h"
 
 // Functions to implement in simplefs-ops.c
