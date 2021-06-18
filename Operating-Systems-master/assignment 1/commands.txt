@@ -1,7 +1,0 @@
-echo "Hello world"
-ls
-pwd
-ps &
-sleep 30 && ls && pwd
-cat "hello " &&& echo "world"
-exitx`
