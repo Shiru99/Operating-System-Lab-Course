@@ -10,16 +10,16 @@ int simplefs_create(char *filename)
 
 	struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
 
-	for (int i = 0; i < NUM_INODES; ++i) //check if same filename exists return -1
+	for (int i = 0; i < NUM_INODES; ++i) // check if same filename exists return -1
 	{
 		simplefs_readInode(i, inode);
 		if (strcmp(inode->name, filename) == 0)
-			return -1;
+			return ERROR;
 	}
 
 	int inode_num = simplefs_allocInode();
-	if (inode_num == -1) // in case of error (no inode available) returns 0
-		return -1;
+	if (inode_num == DOES_NOT_EXIST) // In case of error (no inode available) returns -1
+		return ERROR;
 
 	// create this inode
 	memcpy(inode->name, filename, sizeof(filename));
@@ -42,8 +42,8 @@ void simplefs_delete(char *filename)
 	*/
 	int inode_num = -1;
 	struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
-	//check if same filename exists return -1
-	for (int i = 0; i < NUM_INODES; ++i)
+
+	for (int i = 0; i < NUM_INODES; ++i) // check if filename exists
 	{
 		simplefs_readInode(i, inode);
 		if (strcmp(inode->name, filename) == 0)
@@ -53,12 +53,12 @@ void simplefs_delete(char *filename)
 		}
 	}
 
-	if (inode_num == -1) // if file does not exist
+	if (inode_num == DOES_NOT_EXIST) // if file does not exist
 		return;
 
 	for (int i = 0; i < MAX_FILE_SIZE; i++)
 	{
-		if (inode->direct_blocks[i] != -1)
+		if (inode->direct_blocks[i] != DOES_NOT_EXIST)
 			simplefs_freeDataBlock(inode->direct_blocks[i]);
 	}
 
@@ -74,7 +74,7 @@ int simplefs_open(char *filename)
 	int inode_num = -1;
 	struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
 
-	for (int i = 0; i < NUM_INODES; ++i) //check if same filename exists return -1
+	for (int i = 0; i < NUM_INODES; ++i) //check if filename exists return -1
 	{
 		simplefs_readInode(i, inode);
 		if (strcmp(inode->name, filename) == 0)
@@ -84,13 +84,13 @@ int simplefs_open(char *filename)
 		}
 	}
 
-	if (inode_num == -1)
-		return -1; // not exist
+	if (inode_num == DOES_NOT_EXIST) // does not exist
+		return ERROR;
 
 	int fd = -1;
 	for (int i = 0; i < MAX_OPEN_FILES; i++)
 	{
-		if (file_handle_array[i].inode_number == -1) //unused
+		if (file_handle_array[i].inode_number == -1) // unused
 		{
 			file_handle_array[i].offset = inode->file_size;
 			file_handle_array[i].inode_number = inode_num;
@@ -123,17 +123,17 @@ int simplefs_read(int file_handle, char *buf, int nbytes)
 	int final_block_id = (file_handle_array[file_handle].offset + nbytes - 1) / BLOCKSIZE;
 
 	if (final_block_id >= MAX_FILE_SIZE)
-		return -1;
+		return ERROR;
 
-	//find inode here for direct_blocks
+	// find inode here for direct_blocks
 	struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
 	simplefs_readInode(file_handle_array[file_handle].inode_number, inode);
 
 	if ((inode->file_size - sizeof(char) * file_handle_array[file_handle].offset - sizeof(char) * nbytes) < 0)
-		return -1;
+		return ERROR;
 
-	if (inode->direct_blocks[final_block_id] == -1) //unallocated data block
-		return -1;
+	if (inode->direct_blocks[final_block_id] == DOES_NOT_EXIST) // unallocated data block
+		return ERROR;
 
 	int offset = file_handle_array[file_handle].offset;
 	char *buffer = (char *)malloc(sizeof(char) * (nbytes));
@@ -146,11 +146,11 @@ int simplefs_read(int file_handle, char *buf, int nbytes)
 		if (i == block_id)
 		{
 			int size;
-			nbytes < (BLOCKSIZE - offset%BLOCKSIZE+1) 
-				? (size = nbytes) 
-				: (size = BLOCKSIZE - offset%BLOCKSIZE +1);
+			nbytes < (BLOCKSIZE - offset % BLOCKSIZE + 1)
+				? (size = nbytes)
+				: (size = BLOCKSIZE - offset % BLOCKSIZE + 1);
 
-			strncpy(buffer, tempBufferBlock + (offset % 64),size);
+			strncpy(buffer, tempBufferBlock + (offset % 64), size);
 		}
 		else if (i == final_block_id)
 		{
@@ -169,7 +169,7 @@ int simplefs_read(int file_handle, char *buf, int nbytes)
 	free(inode);
 	free(buffer);
 
-	return 0;
+	return SUCCESS;
 }
 
 int simplefs_write(int file_handle, char *buf, int nbytes)
@@ -183,7 +183,7 @@ int simplefs_write(int file_handle, char *buf, int nbytes)
 	int final_block_id = (file_handle_array[file_handle].offset - 1 + nbytes) / BLOCKSIZE;
 
 	if (final_block_id >= MAX_FILE_SIZE)
-		return -1;
+		return ERROR;
 
 	//find inode here for direct_blocks
 	struct inode_t *inode = (struct inode_t *)malloc(sizeof(struct inode_t));
@@ -191,55 +191,55 @@ int simplefs_write(int file_handle, char *buf, int nbytes)
 
 	int offset = file_handle_array[file_handle].offset;
 
-	if(MAX_FILE_SIZE*BLOCKSIZE < inode->file_size + sizeof(buf)/sizeof(char)){
-		return -1;
+	if (MAX_FILE_SIZE * BLOCKSIZE < inode->file_size + sizeof(buf) / sizeof(char))
+	{
+		return ERROR;
 	}
 
 	for (int i = block_id; i <= final_block_id; i++)
 	{
-		if (inode->direct_blocks[i] == -1)
+		if (inode->direct_blocks[i] == DOES_NOT_EXIST)
 			inode->direct_blocks[i] = simplefs_allocDataBlock();
 
-		if(inode->direct_blocks[i] == -1){
-			return -1;
-		}
+		if (inode->direct_blocks[i] == DOES_NOT_EXIST)
+			return ERROR;
 	}
 	for (int i = block_id; i <= final_block_id; i++)
 	{
-		if (i==block_id && offset % BLOCKSIZE != 0){
-			
+		if (i == block_id && offset % BLOCKSIZE != 0)
+		{
 			char *tempBufferBlock = (char *)malloc(sizeof(char) * BLOCKSIZE);
 			simplefs_readDataBlock(inode->direct_blocks[i], tempBufferBlock);
 			char *buffer = (char *)malloc(sizeof(char) * (BLOCKSIZE));
 			strncat(buffer, tempBufferBlock, offset % BLOCKSIZE);
 			strncat(buffer, buff, BLOCKSIZE - (offset % BLOCKSIZE));
 
-			buff+=sizeof(char)*(BLOCKSIZE - offset % BLOCKSIZE);
+			buff += sizeof(char) * (BLOCKSIZE - offset % BLOCKSIZE);
 
 			simplefs_writeDataBlock(inode->direct_blocks[block_id], buffer);
 			free(buffer);
-		}else if(i==final_block_id){
-
+		}
+		else if (i == final_block_id)
+		{
 			char *buffer = (char *)malloc(sizeof(char) * BLOCKSIZE);
-			strcat(buffer, buff);	
+			strcat(buffer, buff);
 			simplefs_writeDataBlock(inode->direct_blocks[i], buffer);
 			free(buffer);
-
-		}else{
+		}
+		else
+		{
 			char *buffer = (char *)malloc(sizeof(char) * BLOCKSIZE);
 			strncat(buffer, buff, BLOCKSIZE);
-			buff+=sizeof(char)*BLOCKSIZE;
+			buff += sizeof(char) * BLOCKSIZE;
 			simplefs_writeDataBlock(inode->direct_blocks[i], buffer);
 			free(buffer);
 		}
 	}
-	
+
 	inode->file_size += nbytes;
 	simplefs_writeInode(file_handle_array[file_handle].inode_number, inode);
 	free(inode);
-	return 0;
-
-	
+	return SUCCESS;
 }
 
 int simplefs_seek(int file_handle, int nseek)
@@ -248,14 +248,12 @@ int simplefs_seek(int file_handle, int nseek)
 	   increase `file_handle` offset by `nseek`
 	*/
 
-	if (file_handle_array[file_handle].offset + nseek < 0 || file_handle_array[file_handle].offset + nseek >= MAX_FILE_SIZE * BLOCKSIZE)
-		return -1;
+	if (file_handle_array[file_handle].offset + nseek < 0 ||
+		file_handle_array[file_handle].offset + nseek >= MAX_FILE_SIZE * BLOCKSIZE)
 
-	//printf("Seek1 = %d\n", file_handle_array[file_handle].offset);
+		return ERROR;
 
 	file_handle_array[file_handle].offset += nseek;
 
-	//printf("Seek2 = %d\n", file_handle_array[file_handle].offset);
-
-	return 0;
+	return SUCCESS;
 }

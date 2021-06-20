@@ -4,6 +4,10 @@
 #include <assert.h>
 #include "simplefs-disk.h"
 
+#define SUCCESS 0
+#define ERROR -1
+#define DOES_NOT_EXIST -1
+
 // Functions to implement in simplefs-ops.c
 int simplefs_create(char *filename);
 int simplefs_open(char *filename);
