@@ -1,4 +1,4 @@
-# OS-summer-Lab-Course
+# OS-Lab-Course
 
 ### Lab Structure
 
