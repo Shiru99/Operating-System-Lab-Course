@@ -1,6 +1,8 @@
 # OS-Lab-Course
 
-### Lab Structure
+### CS 314 :Lab Structure
+
+Course Instructor :  [Rajshekar K](https://iitdh.ac.in/rajshekar.k/)
 
 [Lab-1](https://github.com/Shiru99/OS-summer-Lab-Course/tree/main/Lab%201) : 
 Building a Shell to execute user commands which also implements Serial, Parallel & Background execution
