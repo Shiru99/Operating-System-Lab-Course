@@ -1,7 +1,7 @@
 ## Resources
 
-0. https://www.cse.iitb.ac.in/~mythili/os/
-
+0. [Lectures](https://www.cse.iitb.ac.in/~mythili/os/) & [Video Playlist](https://www.youtube.com/playlist?list=PLDW872573QAb4bj0URobvQTD41IV6gRkx)
+ 
 1. https://github.com/Nautatva-Assignments-and-projects/Operating-Systems
 2. https://github.com/amanc3765/OS-Lab
 3. https://github.com/dchandak99/File-System
